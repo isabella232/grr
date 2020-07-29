@@ -317,6 +317,8 @@ class CentosClientRepacker(LinuxClientRepacker):
         with io.open(os.path.join(template_dir, name), "wb") as fd:
           fd.write(zf.read(name))
 
+      self._ProcessUniversalTemplate(os.path.join(tmp_dir, "dist"))      
+
       # Set up a RPM building environment.
 
       rpm_root_dir = os.path.join(tmp_dir, "rpmbuild")
@@ -489,3 +491,19 @@ class CentosClientRepacker(LinuxClientRepacker):
           os.path.join(template_dir, "rpmbuild/grr-client.service.in"),
           systemd_target_filename,
           context=self.context)
+
+  def _ProcessUniversalTemplate(self, dist_dir):
+    # If there is a legacy directory, then this is an universal template
+    # (contains both legacy and fleetspeak files).
+    # Depending on the config option, copy only one set of the files into the tree.
+
+    if os.path.exists(os.path.join(dist_dir, "legacy")):
+      if config.CONFIG.Get("Client.fleetspeak_enabled", context=self.context):
+        # Since there is fleetspeak/fleetspeak, rename the top-level fleetspeak directory.
+        shutil.move(os.path.join(dist_dir, "fleetspeak"), os.path.join(dist_dir, "_fleetspeak"))
+        utils.MergeDirectories(os.path.join(dist_dir, "_fleetspeak"), dist_dir)
+      else:
+        utils.MergeDirectories(os.path.join(dist_dir,  "legacy"), dist_dir)
+      self._RmTreeIfExists(os.path.join(dist_dir,  "legacy"))
+      self._RmTreeIfExists(os.path.join(dist_dir,  "_fleetspeak"))
+    os.system("find " + dist_dir)

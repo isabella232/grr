@@ -11,6 +11,7 @@ import functools
 import getpass
 import io
 import os
+import pathlib
 import pipes
 import queue
 import random
@@ -1263,6 +1264,21 @@ def EnsureDirExists(path):
       pass
     else:
       raise
+
+
+def MergeDirectories(src: str, dst: str) -> None:
+  print("Merge",src,"->",dst)
+  src_dir = pathlib.Path(src)
+  dst_dir = pathlib.Path(dst)
+  for path in src_dir.glob("**/*"):
+    print("considering", path)
+    if path.is_dir():
+       continue
+    relative_path = path.relative_to(src_dir)
+    dst_path = dst_dir / relative_path
+    EnsureDirExists(str(dst_path.parent))
+    shutil.copy(str(path), str(dst_path))
+    print(str(path),"->", str(dst_path))
 
 
 def ResolveHostnameToIP(host, port):
